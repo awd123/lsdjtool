@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 use std::io;
-use std::io::Read;
 use std::fs::File;
 
 use structopt::StructOpt;
@@ -65,21 +64,16 @@ fn main() -> io::Result<()> {
             None => PathBuf::from(""),
         };
         let mut blockfile = File::open(blockpath)?;
-        let read_size = lsdj::BLOCK_SIZE;
         let mut bytes = Vec::new(); // bytes of compressed song data
-        loop {
-            let nread = io::Read::by_ref(&mut blockfile).take(read_size as u64).read_to_end(&mut bytes)?;
-            if nread == 0 || nread < read_size { break; }
-        }
+        lsdj::read_blocks_from_file(&mut blockfile, &mut bytes)?;
         let mut outsave = save;
-        let title = if let Some(t) = opt.title {
-            lsdj::metadata::lsdjtitle_from(t.as_str())
-        } else {
-            lsdj::metadata::lsdjtitle_from("SONGNAME")
+        let title_result = match opt.title {
+            Some(t) => lsdj::metadata::lsdjtitle_from(t.as_str()),
+            None => lsdj::metadata::lsdjtitle_from("SONGNAME"),
         };
-        match title {
-            Ok(t) => {
-                match outsave.import_song(&bytes, t) {
+        match title_result {
+            Ok(title) => {
+                match outsave.import_song(&bytes, title) {
                     Ok(_) => (),
                     Err(e) => { eprintln!("{}", e); return Ok(()); },
                 }

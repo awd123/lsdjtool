@@ -30,6 +30,17 @@ pub struct LsdjSram {
     pub data: [u8; SRAM_SIZE],
 }
 
+pub fn read_blocks_from_file(mut blockfile: &mut File, mut bytes: &mut Vec<u8>) -> io::Result<usize> {
+    let read_size = BLOCK_SIZE; // read a block ($200 bytes) at a time
+    let mut blocks_read = 0;
+    loop {
+        let nread = Read::by_ref(&mut blockfile).take(read_size as u64).read_to_end(&mut bytes)?;
+        blocks_read += 1;
+        if nread == 0 || nread < read_size { break; }
+    }
+    Ok(blocks_read)
+}
+
 impl LsdjSram {
     pub fn empty() -> LsdjSram {
         LsdjSram { position: 0, data: [0; SRAM_SIZE] }
