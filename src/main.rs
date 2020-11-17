@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::io;
+use std::io::{Error, ErrorKind};
 use std::fs::File;
 
 use structopt::StructOpt;
@@ -53,7 +54,7 @@ fn main() -> io::Result<()> {
     } else if opt.export != None {
         let index = match opt.export {
             Some(i) => i,
-            None => return Ok(()),
+            None => 0,
         };
         let song_bytes = save.export_song(index);
         outfile.write_all(&song_bytes)?;
@@ -64,9 +65,11 @@ fn main() -> io::Result<()> {
             None => PathBuf::from(""),
         };
         let mut blockfile = File::open(blockpath)?;
+
         let mut bytes = Vec::new(); // bytes of compressed song data
         lsdj::read_blocks_from_file(&mut blockfile, &mut bytes)?;
         let mut outsave = save;
+
         let title_result = match opt.title {
             Some(t) => lsdj::metadata::lsdjtitle_from(t.as_str()),
             None => lsdj::metadata::lsdjtitle_from("SONGNAME"),
@@ -75,14 +78,12 @@ fn main() -> io::Result<()> {
             Ok(title) => {
                 match outsave.import_song(&bytes, title) {
                     Ok(_) => (),
-                    Err(e) => { eprintln!("{}", e); return Ok(()); },
+                    Err(e) => return Err(Error::new(ErrorKind::Other, e)),
                 }
                 println!("{:?}", outsave);
-            },
-            Err(e) => {
-                eprintln!("{}", e);
                 return Ok(());
             },
+            Err(e) => return Err(Error::new(ErrorKind::Other, e)),
         }
     }
     Ok(())
