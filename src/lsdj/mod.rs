@@ -14,6 +14,7 @@ pub const BANK_SIZE : usize = 0x2000;
 pub const BANK_COUNT: usize = 4;
 pub const SRAM_SIZE : usize = BANK_SIZE * BANK_COUNT;
 const BLOCK_ADDRESS : u64   = 0x8200;
+const SAVE_SIZE     : usize = 0x20000;
 
 const ERR_SONGS_FULL : &str = "song slots full!";
 const ERR_BAD_FMT    : &str = "blocks are incorrectly formatted!";
@@ -154,6 +155,23 @@ impl LsdjSave {
         }
         self.metadata.title(song, title); // set title
         Ok(song)
+    }
+
+    /// Returns all bytes in this save file as a `Vec<u8>`.
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(SAVE_SIZE);
+        for b in self.sram.data.iter() {
+            out.push(*b);
+        }
+        for b in self.metadata.bytes().iter() {
+            out.push(*b);
+        }
+        for block in self.blocks.0.iter() {
+            for b in block.data.iter() {
+                out.push(*b);
+            }
+        }
+        out
     }
 }
 

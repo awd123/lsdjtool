@@ -250,6 +250,32 @@ impl LsdjMetadata {
         }
         out
     }
+
+    /// Returns all bytes in this instance as a `Vec<u8>`.
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        for t in self.title_table.iter() {
+            for c in t.iter() {
+                out.push(*c);
+            }
+        }
+        for b in self.version_table.iter() {
+            out.push(*b);
+        }
+        for b in self.empty_bytes.iter() {
+            out.push(*b);
+        }
+        for b in self.sram_init_chk.iter() {
+            out.push(*b);
+        }
+        for b in self.working_song.iter() {
+            out.push(*b);
+        }
+        for b in self.alloc_table.iter() {
+            out.push(*b);
+        }
+        out
+    }
 }
 
 impl fmt::Debug for LsdjMetadata {

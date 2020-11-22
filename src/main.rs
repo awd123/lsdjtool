@@ -80,7 +80,8 @@ fn main() -> io::Result<()> {
                     Ok(_) => (),
                     Err(e) => return Err(Error::new(ErrorKind::Other, e)),
                 }
-                println!("{:?}", outsave);
+                let save_bytes = outsave.bytes();
+                outfile.write_all(&save_bytes)?;
                 return Ok(());
             },
             Err(e) => return Err(Error::new(ErrorKind::Other, e)),
