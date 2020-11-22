@@ -149,6 +149,8 @@ impl LsdjBlock {
 }
 
 pub trait LsdjBlockExt<T> {
+    /// Decompresses all blocks stored in a `Vec<LsdjBlock>`, storing the
+    /// decompressed SRAM data in `dest`.
     fn decompress_to(&self, dest: &mut LsdjSram, start_index: usize) -> Result<u8, &'static str>;
 }
 
@@ -178,6 +180,8 @@ impl LsdjBlockExt<LsdjBlock> for Vec<LsdjBlock> {
 }
 
 impl LsdjSram {
+    /// Compresses this SRAM data into block `dest`, stopping when the
+    /// destination block runs out of space or the SRAM hits its end.
     fn compress(&mut self, dest: &mut LsdjBlock, block_num: u8) -> Result<u8, &'static str> {
         let base = self.position;
         let mut offset = 0;
@@ -259,6 +263,8 @@ impl LsdjSram {
         Ok(0)
     }
 
+    /// Wrapper function for `compress()` that compresses an entire SRAM at
+    /// once and stores the compressed bytes into a `Vec<LsdjBlock>`.
     pub fn compress_into(&mut self, blocks: &mut Vec<LsdjBlock>, first_block: usize) -> Result<u8, &'static str> {
         let mut current_block = first_block;
         let mut blocks_written = 0;

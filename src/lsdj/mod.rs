@@ -25,11 +25,14 @@ const ERR_WTF        : &str = "something has gone terribly wrong";
 mod compression;
 pub mod metadata;
 
+/// Contains the contents of LSDj's save RAM ($8000 bytes long).
 pub struct LsdjSram {
     pub position: usize,
     pub data: [u8; SRAM_SIZE],
 }
 
+/// Reads blocks of compressed song data into a `Vec<u8>`, returns either an
+/// `Err` or the number of blocks read.
 pub fn read_blocks_from_file(mut blockfile: &mut File, mut bytes: &mut Vec<u8>) -> io::Result<usize> {
     let read_size = BLOCK_SIZE; // read a block ($200 bytes) at a time
     let mut blocks_read = 0;
@@ -42,10 +45,12 @@ pub fn read_blocks_from_file(mut blockfile: &mut File, mut bytes: &mut Vec<u8>) 
 }
 
 impl LsdjSram {
+    /// Returns an `LsdjSram` with all fields initalized to zero.
     pub fn empty() -> LsdjSram {
         LsdjSram { position: 0, data: [0; SRAM_SIZE] }
     }
 
+    /// Loads SRAM from the LSDj save file pointed to by `savefile`.
     fn load(&mut self, savefile: &mut File) -> io::Result<()> {
         savefile.seek(Start(0))?;
         let mut handle = Read::by_ref(savefile).take(SRAM_SIZE as u64);
@@ -53,6 +58,7 @@ impl LsdjSram {
         Ok(())
     }
 
+    /// Creates a new `LsdjSram` by reading its data from `savefile`.
     pub fn from(mut savefile: &mut File) -> io::Result<LsdjSram> {
         let mut sram = LsdjSram::empty();
         sram.load(&mut savefile)?;
@@ -60,6 +66,8 @@ impl LsdjSram {
     }
 }
 
+/// Contains a representation of all parts of an LSDj save file (the SRAM, the metadata, and the
+/// blocks.)
 pub struct LsdjSave {
     sram: LsdjSram,
     pub metadata: LsdjMetadata,
@@ -67,6 +75,7 @@ pub struct LsdjSave {
 }
 
 impl LsdjSave {
+    /// Creates an empty `LsdjSave` (all fields initialized with `::empty()`.)
     pub fn empty() -> LsdjSave {
         LsdjSave {
             sram: LsdjSram::empty(),
@@ -75,6 +84,7 @@ impl LsdjSave {
         }
     }
 
+    /// Creates a new `LsdjSave`, reading all data from `savefile`.
     pub fn from(mut savefile: &mut File) -> io::Result<LsdjSave> {
         let sram     = LsdjSram::from(&mut savefile)?;
         let metadata = LsdjMetadata::from(&mut savefile)?;
@@ -82,11 +92,21 @@ impl LsdjSave {
         Ok(LsdjSave { sram: sram, metadata: metadata, blocks: blocks })
     }
 
+    /// Compresses the SRAM contained in this instance, storing the compressed
+    /// blocks in a `Vec<LsdjBlock>`. `first_block` is the index from which
+    /// skip instructions (`$e0 xx`) are calculated.
     pub fn compress_sram_into(&mut self, mut blocks: &mut Vec<LsdjBlock>, first_block: usize) -> Result<u8, &'static str> {
         let block = self.sram.compress_into(&mut blocks, first_block)?;
         Ok(block)
     }
 
+    /// Extracts the song at the given index to a `Vec<u8>`.
+    ///
+    /// # Notes
+    ///
+    /// Note that this function does not check whether there is actually a song
+    /// at index `song`, and thus may return a `Vec` of zeroes if given a
+    /// nonexistent song.
     pub fn export_song(&self, song: u8) -> Vec<u8> {
         let num_blocks = self.metadata.size_of(song);
         let mut bytes  = Vec::with_capacity(num_blocks * BLOCK_SIZE); // raw bytes from blocks
@@ -106,6 +126,11 @@ impl LsdjSave {
         bytes
     }
 
+    /// Adds a new song to the save file, reading from a slice of `u8`s and
+    /// giving it the title specified by `title`. This function adds the song
+    /// at the next available index (next unused song), or returns an `Err` if
+    /// all songs are taken or there are not enough bytes left in the save file
+    /// to store the blocks of song data.
     pub fn import_song(&mut self, bytes: &[u8], title: LsdjTitle) -> Result<u8, &'static str> {
         let song = match self.metadata.next_available_song() {
             Some(s) => s,
