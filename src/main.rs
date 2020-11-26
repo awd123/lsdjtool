@@ -6,6 +6,7 @@ use std::fs::File;
 use structopt::StructOpt;
 
 use lsdj::LsdjSave;
+use lsdj::compression::LsdjBlockExt;
 
 mod lsdj;
 
@@ -19,6 +20,10 @@ struct Opt {
     /// Index of song to be exported from save file
     #[structopt(short, long, value_name("INDEX"), conflicts_with("import-from"))]
     export: Option<u8>,
+
+    /// Export working song (SRAM)
+    #[structopt(short = "x", long = "export-sram", conflicts_with_all(&["export", "import-from"]))]
+    export_sram: bool,
 
     /// File from which to import blocks of compressed song data
     #[structopt(short, long, value_name("SONGFILE"), parse(from_os_str))]
@@ -51,6 +56,16 @@ fn main() -> io::Result<()> {
         let songlist = save.metadata.list_songs();
         outfile.write_all(songlist.as_bytes())?;
         return Ok(());
+    } else if opt.export_sram {
+        let mut save_copy = save;
+        let mut blocks = Vec::new();
+        match save_copy.compress_sram_into(&mut blocks, 1) {
+            Ok(_) => (),
+            Err(e) => return Err(Error::new(ErrorKind::Other, e)),
+        }
+        let bytes = blocks.bytes();
+        outfile.write_all(&bytes)?;
+        return Ok(())
     } else if opt.export != None {
         let index = match opt.export {
             Some(i) => i,

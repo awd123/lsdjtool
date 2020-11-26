@@ -23,7 +23,7 @@ const ERR_BLOCK_TAKEN: &str = "block is already taken!";
 const ERR_NO_SKIP    : &str = "block contains no skip instruction!";
 const ERR_WTF        : &str = "something has gone terribly wrong";
 
-mod compression;
+pub mod compression;
 pub mod metadata;
 
 /// Contains the contents of LSDj's save RAM ($8000 bytes long).

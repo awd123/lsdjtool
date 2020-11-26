@@ -152,6 +152,9 @@ pub trait LsdjBlockExt<T> {
     /// Decompresses all blocks stored in a `Vec<LsdjBlock>`, storing the
     /// decompressed SRAM data in `dest`.
     fn decompress_to(&self, dest: &mut LsdjSram, start_index: usize) -> Result<u8, &'static str>;
+
+    /// Returns all bytes in all blocks as a `Vec<u8>`.
+    fn bytes(&self) -> Vec<u8>;
 }
 
 impl LsdjBlockExt<LsdjBlock> for Vec<LsdjBlock> {
@@ -176,6 +179,16 @@ impl LsdjBlockExt<LsdjBlock> for Vec<LsdjBlock> {
             }
         }
         Ok(blocks_decompressed)
+    }
+
+    fn bytes(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        for block in self.iter() {
+            for byte in block.data.iter() {
+                out.push(*byte);
+            }
+        }
+        out
     }
 }
 
