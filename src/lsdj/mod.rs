@@ -77,6 +77,7 @@ pub struct LsdjSave {
 
 impl LsdjSave {
     /// Creates an empty `LsdjSave` (all fields initialized with `::empty()`.)
+    #[allow(dead_code)]
     pub fn empty() -> LsdjSave {
         LsdjSave {
             sram: LsdjSram::empty(),
