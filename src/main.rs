@@ -1,7 +1,6 @@
-use std::path::PathBuf;
 use std::io;
-use std::io::{Error, ErrorKind};
 use std::fs::File;
+use std::path::PathBuf;
 
 use structopt::StructOpt;
 
@@ -9,6 +8,9 @@ use lsdj::LsdjSave;
 use lsdj::compression::LsdjBlockExt;
 
 mod lsdj;
+
+const ERR_COMPRESSION: &str = "SRAM compression failed";
+const ERR_TITLE_FMT: &str   = "Title incorrectly formatted";
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "lsdjtool")]
@@ -59,26 +61,17 @@ fn main() -> io::Result<()> {
     } else if opt.export_sram {
         let mut save_copy = save;
         let mut blocks = Vec::new();
-        match save_copy.compress_sram_into(&mut blocks, 1) {
-            Ok(_) => (),
-            Err(e) => return Err(Error::new(ErrorKind::Other, e)),
-        }
+        save_copy.compress_sram_into(&mut blocks, 1).expect(ERR_COMPRESSION);
         let bytes = blocks.bytes();
         outfile.write_all(&bytes)?;
         return Ok(())
     } else if opt.export != None {
-        let index = match opt.export {
-            Some(i) => i,
-            None => 0,
-        };
+        let index = opt.export.unwrap();
         let song_bytes = save.export_song(index);
         outfile.write_all(&song_bytes)?;
         return Ok(())
     } else if opt.import_from != None {
-        let blockpath = match opt.import_from {
-            Some(p) => p,
-            None => PathBuf::from(""),
-        };
+        let blockpath = opt.import_from.unwrap();
         let mut blockfile = File::open(blockpath)?;
 
         let mut bytes = Vec::new(); // bytes of compressed song data
@@ -89,18 +82,11 @@ fn main() -> io::Result<()> {
             Some(t) => lsdj::metadata::lsdjtitle_from(t.as_str()),
             None => lsdj::metadata::lsdjtitle_from("SONGNAME"),
         };
-        match title_result {
-            Ok(title) => {
-                match outsave.import_song(&bytes, title) {
-                    Ok(_) => (),
-                    Err(e) => return Err(Error::new(ErrorKind::Other, e)),
-                }
-                let save_bytes = outsave.bytes();
-                outfile.write_all(&save_bytes)?;
-                return Ok(());
-            },
-            Err(e) => return Err(Error::new(ErrorKind::Other, e)),
-        }
+        let title = title_result.expect(ERR_TITLE_FMT);
+        outsave.import_song(&bytes, title).unwrap();
+        let save_bytes = outsave.bytes();
+        outfile.write_all(&save_bytes)?;
+        return Ok(());
     }
     Ok(())
 }
