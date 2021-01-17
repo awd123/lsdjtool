@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 use lsdj::LsdjSave;
-use lsdj::compression::LsdjBlockExt;
+use lsdj::LsdjBlockExt;
 
 mod lsdj;
 
@@ -79,8 +79,8 @@ fn main() -> io::Result<()> {
         let mut outsave = save;
 
         let title_result = match opt.title {
-            Some(t) => lsdj::metadata::lsdjtitle_from(t.as_str()),
-            None => lsdj::metadata::lsdjtitle_from("SONGNAME"),
+            Some(t) => lsdj::lsdjtitle_from(t.as_str()),
+            None => lsdj::lsdjtitle_from("SONGNAME"),
         };
         let title = title_result.expect(ERR_TITLE_FMT);
         outsave.import_song(&bytes, title).unwrap();
