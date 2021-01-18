@@ -67,30 +67,36 @@ impl LsdjBlock {
     pub fn decompress(&self, dest: &mut LsdjSram) -> Result<u8, &'static str> {
         let base = dest.position;
         let mut offset = 0;
-        let mut block_index = 0;
+        let mut bytes_iter = self.data.iter();
 
-        while block_index < lsdj::BLOCK_SIZE {
-            match self.data[block_index] {
+        while let Some(&byte) = bytes_iter.next() {
+            match byte {
                 RLE_BYTE => {
-                    if self.data[block_index + 1] == RLE_BYTE {
+                    let next_byte = match bytes_iter.next() {
+                        Some(&b) => b,
+                        None => return Err(lsdj::ERR_BAD_FMT),
+                    };
+                    if next_byte == RLE_BYTE {
                         dest.data[base + offset] = RLE_BYTE;
                         offset += 1;
-                        block_index += 2;
                     } else {
-                        block_index += 1;
-                        let byte_value = self.data[block_index];
-                        block_index += 1;
-                        let byte_repeat = self.data[block_index];
+                        let byte_value = next_byte;
+                        let byte_repeat = match bytes_iter.next() {
+                            Some(&b) => b,
+                            None => return Err(lsdj::ERR_BAD_FMT),
+                        };
                         for _j in 0..byte_repeat {
                             dest.data[base + offset] = byte_value;
                             offset += 1;
                         }
-                        block_index += 1;
                     }
                 },
                 SPECIAL_BYTE => {
-                    block_index += 1;
-                    match self.data[block_index] {
+                    let next_byte = match bytes_iter.next() {
+                        Some(&b) => b,
+                        None => return Err(lsdj::ERR_BAD_FMT),
+                    };
+                    match next_byte {
                         SPECIAL_BYTE => {
                             dest.data[base + offset] = SPECIAL_BYTE;
                             offset += 1;
@@ -114,12 +120,10 @@ impl LsdjBlock {
                             return Ok(switch_block);
                         },
                     }
-                    block_index += 1;
                 },
-                byte => {
-                    dest.data[base + offset] = byte;
+                b => {
+                    dest.data[base + offset] = b;
                     offset += 1;
-                    block_index += 1;
                 },
             }
         }
@@ -356,7 +360,7 @@ mod tests {
         block.data[1] = 0x41;
         block.data[2] = 0x10;
         let mut sram = LsdjSram::empty();
-        block.decompress(&mut sram).unwrap();
+        match block.decompress(&mut sram) { Ok(_) | Err(_) => () } // ignore error raised by the lack of a "switch block" instruction at the end of the block
         // SRAM should be 0x41, repeated 16 times
         assert_eq!(&sram.data[0..0x10], &[0x41; 0x10]);
     }
