@@ -8,26 +8,29 @@ use compression::LsdjBlock;
 use metadata::*;
 use metadata::LsdjTitle;
 
-pub const BLOCK_SIZE: usize = 0x200;
+const BLOCK_SIZE: usize = 0x200;
 const BLOCK_COUNT   : usize = 0xbe;
-pub const BANK_SIZE : usize = 0x2000;
-pub const BANK_COUNT: usize = 4;
-pub const SRAM_SIZE : usize = BANK_SIZE * BANK_COUNT;
+const BANK_SIZE : usize = 0x2000;
+const BANK_COUNT: usize = 4;
+const SRAM_SIZE : usize = BANK_SIZE * BANK_COUNT;
 const BLOCK_ADDRESS : u64   = 0x8200;
 const SAVE_SIZE     : usize = 0x20000;
-
-const ERR_SONGS_FULL : &str = "song slots full!";
-const ERR_BAD_FMT    : &str = "blocks are incorrectly formatted!";
-const ERR_NO_BLOCKS  : &str = "not enough free blocks left!";
-const ERR_BLOCK_TAKEN: &str = "block is already taken!";
-const ERR_NO_SKIP    : &str = "block contains no skip instruction!";
-const ERR_WTF        : &str = "something has gone terribly wrong";
 
 mod compression;
 mod metadata;
 
 pub use compression::LsdjBlockExt;
 pub use metadata::lsdjtitle_from;
+
+mod err {
+    pub const SONGS_FULL   : &str = "song slots full!";
+    pub const BAD_FMT      : &str = "blocks are incorrectly formatted!";
+    pub const NO_BLOCKS    : &str = "not enough free blocks left!";
+    pub const BLOCK_TAKEN  : &str = "block is already taken!";
+    pub const NO_SKIP      : &str = "block contains no skip instruction!";
+    pub const WTF          : &str = "something has gone terribly wrong";
+    pub const BAD_TITLE_FMT: &str = "title must be at most 8 characters, A-Z0-9x.";
+}
 
 /// Contains the contents of LSDj's save RAM ($8000 bytes long).
 pub struct LsdjSram {
@@ -139,15 +142,15 @@ impl LsdjSave {
     pub fn import_song(&mut self, bytes: &[u8], title: LsdjTitle) -> Result<u8, &'static str> {
         let song = match self.metadata.next_available_song() {
             Some(s) => s,
-            None => return Err(ERR_SONGS_FULL)
+            None => return Err(err::SONGS_FULL)
         };
         if bytes.len() % BLOCK_SIZE != 0 {
-            return Err(ERR_BAD_FMT); // make sure correct number of bytes are passed in
+            return Err(err::BAD_FMT); // make sure correct number of bytes are passed in
         }
         let num_blocks  = bytes.len() / BLOCK_SIZE;
         let free_blocks = BLOCK_COUNT - self.metadata.blocks_used();
         if num_blocks > free_blocks {
-            return Err(ERR_NO_BLOCKS);
+            return Err(err::NO_BLOCKS);
         }
         let mut blocks_vec = Vec::with_capacity(num_blocks);
         for i in 0..blocks_vec.capacity() {
@@ -176,7 +179,7 @@ impl LsdjSave {
             if num_copied < num_blocks - 1 {
                 let next_pos = match positions_iter.peek() {
                     Some(&&n) => n, // peek into next block index to find value of skip instruction
-                    None => return Err(ERR_WTF),
+                    None => return Err(err::WTF),
                 };
                 block.skip_to_block(next_pos)?; // modifies the block so that the index of the next block is sorrect
             } // modify every block except the last
@@ -300,7 +303,7 @@ mod tests {
         }
         let bytes = vec![1, 2, 3];
         let song = save.import_song(&bytes, [0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(song, Err(ERR_SONGS_FULL));
+        assert_eq!(song, Err(err::SONGS_FULL));
         let mut block_bytes = vec![5; BLOCK_SIZE * 3];
         block_bytes[BLOCK_SIZE - 2] = 0xe0;
         block_bytes[BLOCK_SIZE - 1] = b'x';

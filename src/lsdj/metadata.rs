@@ -6,7 +6,7 @@ use std::fs::File;
 use std::fmt;
 use std::str::from_utf8;
 
-use crate::lsdj;
+use crate::lsdj::err;
 
 const TITLE_TABLE_ADDRESS  : u64   = 0x8000;
 const TITLE_LENGTH         : usize = 8;
@@ -22,9 +22,7 @@ const _WORKING_SONG_ADDRESS : u64   = 0x8140;
 const _ALLOC_TABLE_ADDRESS  : u64   = 0x8141;
 const ALLOC_TABLE_LENGTH   : usize = 0xbf;
 
-pub const SRAM_INIT_CHK_BYTES: [u8; 2] = [b'j', b'k'];
-
-const ERR_BAD_TITLE_FMT: &str = "title must be at most 8 characters, A-Z0-9x.";
+const SRAM_INIT_CHK_BYTES: [u8; 2] = [b'j', b'k'];
 
 /// LSDj song titles consist of at most ASCII characters, padded with zeros.
 pub type LsdjTitle = [u8; TITLE_LENGTH];
@@ -84,13 +82,13 @@ pub fn lsdjtitle_from<'a>(from: &'a str) -> Result<LsdjTitle, &'static str> {
     let mut title = [0; TITLE_LENGTH];
 
     if from.len() > TITLE_LENGTH {
-        return Err(ERR_BAD_TITLE_FMT); // error if title is too long
+        return Err(err::BAD_TITLE_FMT); // error if title is too long
     }
     
     for (inc, outc) in from.bytes().zip(title.iter_mut()) {
         match inc {
             b'A'..=b'Z' | b'0'..=b'9' | b'x' => *outc = inc, // copy byte to output if valid title character
-            _ => return Err(ERR_BAD_TITLE_FMT), // error otherwise
+            _ => return Err(err::BAD_TITLE_FMT), // error otherwise
         }
     }
 
@@ -166,7 +164,7 @@ impl LsdjMetadata {
     /// Sets `block`'s entry in the allocation table to `song`.
     pub fn reserve(&mut self, block: usize, song: u8) -> Result<(), &'static str> {
         if self.alloc_table[block - 1] != 0xff {
-            return Err(lsdj::ERR_BLOCK_TAKEN);
+            return Err(err::BLOCK_TAKEN);
         } else {
             self.alloc_table[block - 1] = song;
         }
@@ -325,9 +323,9 @@ mod tests {
         let title = "TITLEx";
         assert_eq!(lsdjtitle_from(title), Ok([b'T', b'I', b'T', b'L', b'E', b'x', 0, 0]));
         let invalid_title1 = "SONGTITLE";
-        assert_eq!(lsdjtitle_from(invalid_title1), Err(ERR_BAD_TITLE_FMT));
+        assert_eq!(lsdjtitle_from(invalid_title1), Err(err::BAD_TITLE_FMT));
         let invalid_title2 = "title";
-        assert_eq!(lsdjtitle_from(invalid_title2), Err(ERR_BAD_TITLE_FMT));
+        assert_eq!(lsdjtitle_from(invalid_title2), Err(err::BAD_TITLE_FMT));
     }
 
     #[test]
@@ -367,7 +365,7 @@ mod tests {
         assert_eq!(metadata.blocks_used(), 0);
         let song = match metadata.next_available_song() {
             Some(s) => s,
-            None => return Err(lsdj::ERR_SONGS_FULL)
+            None => return Err(err::SONGS_FULL)
         };
         while let Some(next_block) = metadata.next_empty_block() {
             metadata.reserve(next_block, song)?;

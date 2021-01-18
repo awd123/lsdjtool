@@ -2,6 +2,7 @@ use std::fmt;
 use std::convert::TryInto;
 
 use crate::lsdj;
+use crate::lsdj::err;
 use crate::lsdj::BLOCK_SIZE;
 use crate::lsdj::LsdjSram;
 
@@ -74,7 +75,7 @@ impl LsdjBlock {
                 RLE_BYTE => {
                     let next_byte = match bytes_iter.next() {
                         Some(&b) => b,
-                        None => return Err(lsdj::ERR_BAD_FMT),
+                        None => return Err(err::BAD_FMT),
                     };
                     if next_byte == RLE_BYTE {
                         dest.data[base + offset] = RLE_BYTE;
@@ -83,7 +84,7 @@ impl LsdjBlock {
                         let byte_value = next_byte;
                         let byte_repeat = match bytes_iter.next() {
                             Some(&b) => b,
-                            None => return Err(lsdj::ERR_BAD_FMT),
+                            None => return Err(err::BAD_FMT),
                         };
                         for _j in 0..byte_repeat {
                             dest.data[base + offset] = byte_value;
@@ -94,7 +95,7 @@ impl LsdjBlock {
                 SPECIAL_BYTE => {
                     let next_byte = match bytes_iter.next() {
                         Some(&b) => b,
-                        None => return Err(lsdj::ERR_BAD_FMT),
+                        None => return Err(err::BAD_FMT),
                     };
                     match next_byte {
                         SPECIAL_BYTE => {
@@ -128,7 +129,7 @@ impl LsdjBlock {
             }
         }
         dest.position += offset;
-        Err(lsdj::ERR_BAD_FMT)
+        Err(err::BAD_FMT)
     }
 
     /// Changes the "skip to block `n`" instruction ($e0, n) at the end of the
@@ -143,12 +144,12 @@ impl LsdjBlock {
                         return Ok(());
                     },
                     Some(&mut DEF_INST_BYTE) | Some(&mut DEF_WAVE_BYTE) => (),
-                    Some(&mut EOF_BYTE) => return Err(lsdj::ERR_NO_SKIP), // block doesn't contain a skip instruction
-                    Some(_) | None => return Err(lsdj::ERR_BAD_FMT), // block contains a $c0 with no following byte
+                    Some(&mut EOF_BYTE) => return Err(err::NO_SKIP), // block doesn't contain a skip instruction
+                    Some(_) | None => return Err(err::BAD_FMT), // block contains a $c0 with no following byte
                 }
             }
         }
-        Err(lsdj::ERR_NO_SKIP)
+        Err(err::NO_SKIP)
     }
 }
 
@@ -408,7 +409,7 @@ mod tests {
     #[test]
     fn test_skip_to_block() {
         let mut empty_block = LsdjBlock::empty();
-        assert_eq!(empty_block.skip_to_block(0xb), Err(lsdj::ERR_NO_SKIP));
+        assert_eq!(empty_block.skip_to_block(0xb), Err(err::NO_SKIP));
         let mut real_block = LsdjBlock::empty();
         real_block.data[5] = SPECIAL_BYTE;
         real_block.data[6] = 4;
