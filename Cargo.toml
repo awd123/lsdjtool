@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.3"
+lsdj = { version = "^0.1.0", path="../lsdj-extract" }

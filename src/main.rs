@@ -7,8 +7,6 @@ use structopt::StructOpt;
 use lsdj::LsdjSave;
 use lsdj::LsdjBlockExt;
 
-mod lsdj;
-
 const ERR_COMPRESSION: &str = "SRAM compression failed";
 const ERR_TITLE_FMT: &str   = "Title incorrectly formatted";
 
