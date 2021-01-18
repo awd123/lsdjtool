@@ -356,7 +356,7 @@ mod tests {
         block.data[1] = 0x41;
         block.data[2] = 0x10;
         let mut sram = LsdjSram::empty();
-        block.decompress(&mut sram);
+        block.decompress(&mut sram).unwrap();
         // SRAM should be 0x41, repeated 16 times
         assert_eq!(&sram.data[0..0x10], &[0x41; 0x10]);
     }
@@ -383,7 +383,7 @@ mod tests {
         sram.data[16] = 0x41;
         sram.data[17] = 0x41;
         let mut block = LsdjBlock::empty();
-        sram.compress(&mut block, 1);
+        sram.compress(&mut block, 1).unwrap();
         assert_eq!(&block.data[0..3], &[0xc0, 0x41, 18]);
     }
 
@@ -394,9 +394,9 @@ mod tests {
         let mut savefile = File::open(savepath)?;
         let mut blocks: Vec<LsdjBlock> = Vec::new();
         let mut sram = LsdjSram::from(&mut savefile)?;
-        sram.compress_into(&mut blocks, 1);
+        sram.compress_into(&mut blocks, 1).unwrap();
         let mut decompressed_sram = LsdjSram::empty();
-        blocks.decompress_to(&mut decompressed_sram, 0);
+        blocks.decompress_to(&mut decompressed_sram, 0).unwrap();
         assert_eq!(sram, decompressed_sram);
         Ok(())
     }
