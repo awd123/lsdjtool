@@ -3,7 +3,7 @@ use std::convert::TryInto;
 
 use crate::lsdj;
 use crate::lsdj::BLOCK_SIZE;
-use lsdj::LsdjSram;
+use crate::lsdj::LsdjSram;
 
 const RLE_BYTE     : u8 = 0xc0; // $c0 in a compressed block indicates the beginning of an RLE sequence
 const SPECIAL_BYTE : u8 = 0xe0; // indicates that the following byte has special meaning
@@ -26,9 +26,9 @@ fn is_def_inst(data: &[u8]) -> bool {
         Err(_)  => return false // if slice is the wrong size
     };
 
-    for i in 0..DEF_INST_SIZE {
-        if data_array[i] != DEF_INST_VALUES[i] {
-            return false;
+    for (c, d) in data_array.iter().zip(DEF_INST_VALUES.iter()) {
+        if c != d {
+            return false; // return upon first non-matching byte
         }
     }
     true
@@ -42,9 +42,9 @@ fn is_def_wave(data: &[u8]) -> bool {
         Err(_)  => return false
     };
 
-    for i in 0..DEF_WAVE_SIZE {
-        if data_array[i] != DEF_WAVE_VALUES[i] {
-            return false;
+    for (c, d) in data_array.iter().zip(DEF_WAVE_VALUES.iter()) {
+        if c != d {
+            return false; // return upon first non-matching byte
         }
     }
     true
