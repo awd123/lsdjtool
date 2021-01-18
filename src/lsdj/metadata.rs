@@ -24,7 +24,7 @@ const ALLOC_TABLE_LENGTH   : usize = 0xbf;
 
 const SRAM_INIT_CHK_BYTES: [u8; 2] = [b'j', b'k'];
 
-/// LSDj song titles consist of at most ASCII characters, padded with zeros.
+/// LSDj song titles consist of at most eight ASCII characters, padded with zeros.
 pub type LsdjTitle = [u8; TITLE_LENGTH];
 
 /// Contains a representation of all metadata in an LSDj save file (all data between
@@ -87,7 +87,7 @@ pub fn lsdjtitle_from<'a>(from: &'a str) -> Result<LsdjTitle, &'static str> {
     
     for (inc, outc) in from.bytes().zip(title.iter_mut()) {
         match inc {
-            b'A'..=b'Z' | b'0'..=b'9' | b'x' => *outc = inc, // copy byte to output if valid title character
+            b'A'..=b'Z' | b'0'..=b'9' | b'x' | b' ' => *outc = inc, // copy byte to output if valid title character
             _ => return Err(err::BAD_TITLE_FMT), // error otherwise
         }
     }

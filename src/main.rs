@@ -31,7 +31,8 @@ struct Opt {
     #[structopt(short, long, value_name("SONGFILE"), parse(from_os_str))]
     import_from: Option<PathBuf>,
 
-    /// Title for imported song (at most eight characters, uppercase ASCII,
+    /// Title for imported song (at most eight characters, uppercase alphanumeric ASCII plus space
+    /// (0x20),
     /// lowercase 'x' represents the lightning bolt character). Defaults to
     /// SONGNAME.
     #[structopt(short, long, value_name("TITLE"), requires("import-from"))]
