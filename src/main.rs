@@ -7,6 +7,15 @@ use structopt::StructOpt;
 use lsdj::LsdjSave;
 use lsdj::LsdjBlockExt;
 
+macro_rules! or_die {
+    ($e:expr) => {
+        if let Err(e) = $e {
+            eprintln!("{:?}", e);
+            std::process::exit(1);
+        }
+    };
+}
+
 const ERR_COMPRESSION: &str = "SRAM compression failed";
 const ERR_TITLE_FMT: &str   = "Title incorrectly formatted";
 
@@ -78,11 +87,11 @@ fn main() -> io::Result<()> {
         let mut outsave = save;
 
         let title_result = match opt.title {
-            Some(t) => lsdj::lsdjtitle_from(t.as_str()),
+            Some(t) => lsdj::lsdjtitle_from(t),
             None => lsdj::lsdjtitle_from("SONGNAME"),
         };
         let title = title_result.expect(ERR_TITLE_FMT);
-        outsave.import_song(&bytes, title).unwrap();
+        or_die!(outsave.import_song(&bytes, title));
         let save_bytes = outsave.bytes();
         outfile.write_all(&save_bytes)?;
         return Ok(());
